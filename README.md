@@ -21,3 +21,9 @@ Each thread has a unique:
     Return value: errno
 
 pthread functions return "0" if OK
+
+##Resourses
+
+POSIX Thread lib:
+
+https://www.cs.cmu.edu/afs/cs/academic/class/15492-f07/www/pthreads.html
