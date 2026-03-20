@@ -1,18 +1,23 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   main.c                                             :+:      :+:    :+:   */
+/*   table.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: afomin <afomin@student.42kl.edu.my         +#+  +:+       +#+        */
+/*   By: afomin  afomin@student.42kl.edu.my         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/10 13:35:59 by afomin            #+#    #+#             */
-/*   Updated: 2026/03/10 14:50:36 by afomin           ###   ########.fr       */
+/*   Created: 2026/03/16 15:17:42 by afomin            #+#    #+#             */
+/*   Updated: 2026/03/16 15:17:43 by afomin           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "codexion.h"
+#include "../codexion.h"
 
-int	main(int argc, char **args)
+t_byte	t_get_dongles(t_table *table)
 {
-	app_run(argc, args);
+	t_byte	dongles;
+
+	pthread_mutex_lock(&table->dongle_mutex);
+	dongles = table->dongles;
+	pthread_mutex_unlock(&table->dongle_mutex);
+	return (dongles);
 }

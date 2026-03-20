@@ -3,7 +3,7 @@
 /*                                                        :::      ::::::::   */
 /*   codexion.h                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: afomin <afomin@student.42kl.edu.my         +#+  +:+       +#+        */
+/*   By: afomin afomin@student.42kl.edu.my          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 13:35:59 by afomin            #+#    #+#             */
 /*   Updated: 2026/03/10 14:50:36 by afomin           ###   ########.fr       */
@@ -16,40 +16,113 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdarg.h>
 
 #define EDF_STR "edf"
 #define FIFO_STR "fifo"
 
+/*
+⢸⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⡷⠀⠀
+⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⠀
+⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇ Are ya winning son?
+⢸⠀⠀⠀⠀⠀⠖⠒⠒⠒⢤⠀⠀⠀⡇
+⢸⠀⠀⣀⢤⣼⣀⡠⠤⠤⠼⠤⡄⠀⡇⠀
+⢸⠀⠀⠑⡤⠤⡒⠒⠒⡊⠙⡏⠀⢀⡇⠀
+⢸⠀⠀⠀⠇⠀⣀⣀⣀⣀⢀⠧⠟⠁⡇
+⢸⠀⠀⠀⠸⣀⠀⠀⠈⢉⠟⠓⠀⠀⡇
+⢸⠀⠀⠀⠀⠈⢱⡖⠋⠁⠀⠀⠀⠀⡇
+⢸⠀⠀⠀⠀⣠⢺⠧⢄⣀⠀⠀⣀⣀⡇
+⢸⠀⠀⠀⣠⠃⢸⠀⠀⠈⠉⡽⠿⠯⡆
+⢸⠀⠀⣰⠁⠀⢸⠀⠀⠀⠀⠉⠉⠉⡇
+⢸⠀⠀⠣⠀⠀⢸⢄⠀⠀⠀⠀⠀⠀⡇
+⢸⠀⠀⠀⠀⠀⢸⠀⢇⠀⠀⠀⠀⠀⡇ 
+*/
+
 typedef unsigned int		t_uint;
 typedef unsigned long long	t_msec;
+typedef pthread_mutex_t		t_mutex;
+typedef pthread_cond_t		t_condition;
+typedef unsigned char		t_byte;
 
-typedef enum e_state
+typedef enum e_scheduler
 {
-	COMPILING = 1,
-	DEBUGGING = 2,
-	REFACTORING = 3
-}	t_state;
+	EDF,
+	FIFO
+}	t_schedulerType;
 
 typedef struct s_coder
 {
-	t_uint	id;
-	t_state	state;
-	int		is_dead;
-	t_uint	compilations_done;
-	t_msec	last_action_time;
+	t_uint		id;
+	pthread_t	thread;
+	t_msec		action_time;
+	t_msec		deadline;
+	t_condition	condition;
 }	t_coder;
+
+typedef struct s_queue_node
+{
+	t_byte				id;
+	t_msec				request_time;
+	t_msec				deadline;
+	struct s_queue_node	*next;
+}	t_requestQueueNode;
+
+typedef struct s_queue
+{
+	t_mutex				mutex;
+	t_requestQueueNode	*head;
+}	t_requestQueue;
 
 typedef struct s_table
 {
-	t_uint	number_of_coders;
-	t_msec	time_to_burnout;
-	t_msec	time_to_compile;
-	t_msec	time_to_debug;
-	t_msec	time_to_refactor;
-	t_uint	compiles_required;
-	t_msec	dongle_cooldown;
+	t_uint			number_of_coders;
+	t_msec			time_to_burnout;
+	t_msec			time_to_compile;
+	t_msec			time_to_debug;
+	t_msec			time_to_refactor;
+	t_uint			compiles_required;
+	t_msec			dongle_cooldown;
+	t_schedulerType	scheduler;
+
+	t_mutex			dongle_mutex;
+	t_mutex			log_mutex;
+	t_requestQueue	*queue;
+	t_condition		condition;
+	t_condition		scheduler_condition;
+	t_uint			dongles;
+	t_byte			failed;
+	t_coder			**coders;
 }	t_table;
 
-// ===== ConsoleUI =====
+typedef struct s_thread_data
+{
+	t_table	*table;
+	t_byte	id;
+}	t_thread_data;
+
+// ===== Initialization =====
 int		validate_args(char **args);
-void	console_ui_run(int argc, char **args);
+int		app_run(int argc, char **args);
+
+// ===== Codexion =====
+void	run_codexion(t_table *table);
+void	*scheduler(void *data);
+
+// ===== Models =====
+void	*c_life(void *thread_data);
+t_msec	c_action_time(t_table *table, t_byte id);
+void	c_update_action_time(t_table *table, t_byte id);
+
+void	rq_add(t_requestQueue *queue, t_coder *coder);
+void	rq_add_unsafe(t_requestQueue *queue, t_coder *coder);
+void	rq_pop(t_requestQueue *queue);
+void	rq_pop_unsafe(t_requestQueue *queue);
+
+t_byte	t_get_dongles(t_table *table);
+
+// ===== Utils =====
+t_msec	current_time_ms(void);
+int		error(char *msg);
+void	delay(t_msec milliseconds);
+void	logger(t_table *table, char *msg);
+void	log_coder(t_table *table, char *msg, int id);

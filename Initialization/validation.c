@@ -3,7 +3,7 @@
 /*                                                        :::      ::::::::   */
 /*   validation.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: afomin <afomin@student.42kl.edu.my         +#+  +:+       +#+        */
+/*   By: afomin  afomin@student.42kl.edu.my         +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 13:35:59 by afomin            #+#    #+#             */
 /*   Updated: 2026/03/10 14:50:36 by afomin           ###   ########.fr       */
@@ -50,21 +50,6 @@ static int	is_msec(char *num)
 		return (strcmp(num, MSEC_MAX_STR) <= 0);
 	else
 		return (0);
-}
-
-static int	error(char *msg)
-{
-	size_t	len;
-	char	*error;
-	char	nl;
-
-	len = strlen(msg);
-	error = "ERROR: ";
-	nl = '\n';
-	write(2, error, 7);
-	write(2, msg, len);
-	write(2, &nl, 1);
-	return (0);
 }
 
 /*
