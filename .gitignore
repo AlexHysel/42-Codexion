@@ -1,4 +1,5 @@
 test.c
 *.o
 *.out
+*.swp
 codexion

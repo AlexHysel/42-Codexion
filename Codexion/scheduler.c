@@ -12,62 +12,28 @@
 
 #include "../codexion.h"
 
-static t_byte	get_id_by_time(t_table *table)
+static t_byte	get_id_by_time(t_requestQueue *queue)
 {
-	t_byte	id;
-	t_byte	i;
-	t_msec	b_delta;
-	t_msec	delta;
+	t_requestQueueNode	*curr;
+	t_byte				id;
+	t_msec				best_deadline;
 
-	i = -1;
 	id = -1;
-	b_delta = -1;
-	while (++i < table->number_of_coders)
+	if (queue && queue->head)
 	{
-		if (table->coders[i]->scheduler_requested)
+		curr = queue->head;
+		best_deadline = -1;
+		while (curr)
 		{
-			delta = c_delta(table, i);
-			if (b_delta > delta)
+			if (curr->deadline < best_deadline)
 			{
-				id = i;
-				b_delta = delta;
+				best_deadline = curr->deadline;
+				id = curr->id;
 			}
+			curr = curr->next;
 		}
 	}
 	return (id);
-}
-
-static void	next_id_edf(t_table *table)
-{
-	t_byte	id;
-
-	id = get_id_by_time(table);
-	if (id != 255
-		&& (!table->queue || id != table->queue->id))
-	{
-		if (!table->queue)
-		{
-			table->queue = malloc(sizeof(t_requestQueue));
-			if (table->queue)
-			{
-				table->queue->id = id;
-				table->queue->next = NULL;
-			}
-			else
-				logger(table, "next_id_edf: Allocation error");
-		}
-		else
-			table->queue->id = id;
-		log_coder(table, "Is next for compilation", id);
-	}
-	else
-		logger(table, "No coders are waiting for compilation.");
-}
-
-static void	next_id_fifo(t_table *table, t_byte id)
-{
-	q_add_unsafe(table, id);
-	log_coder(table, "Added to queue.", id);
 }
 
 void	*scheduler(void *data)
@@ -76,21 +42,36 @@ void	*scheduler(void *data)
 	t_byte	id;
 
 	table = (t_table *) data;
-	id = 2;
-	logger(table, "Scheduler launched...");
+	logger("Scheduler launched...", -1, table->start_time);
 	while (!table->failed)
 	{
-		pthread_mutex_lock(&table->queue_mutex);
-		pthread_cond_wait(&table->scheduler_condition, &table->queue_mutex);
-		logger(table, "Updating queue...");
-		if (table->scheduler == EDF)
-			next_id_edf(table);
-		else
-			next_id_fifo(table, id);
-		if (table->queue)
-			table->coders[table->queue->id]->scheduler_requested = 0;
-		pthread_mutex_unlock(&table->queue_mutex);
-		pthread_cond_broadcast(&table->condition);
+		pthread_mutex_lock(&table->queue->mutex);
+		pthread_cond_wait(&table->scheduler_condition, &table->queue->mutex);
+		if (!table->failed && table->scheduler == EDF)
+		{
+			id = get_id_by_time(table->queue);
+			if (id != 255)
+			{
+				rq_remove_unsafe(table->queue, id);
+				pthread_cond_broadcast(&table->coders[id]->condition);
+				logger("Is next in queue", id, table->start_time);
+			}
+			else
+				logger("Request Queue is empty", -1, table->start_time);
+		}
+		else if (!table->failed)
+		{
+			if (table->queue && table->queue->head)
+			{
+				id = table->queue->head->id;
+				rq_pop_unsafe(table->queue);
+				pthread_cond_broadcast(&table->coders[id]->condition);
+				logger("Is next in queue", id, table->start_time);
+			}
+			else
+				logger("Request Queue is empty", -1, table->start_time);
+		}
+		pthread_mutex_unlock(&table->queue->mutex);
 	}
 	return (NULL);
 }

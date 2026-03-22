@@ -23,8 +23,8 @@ void	rq_add(t_requestQueue *queue, t_coder *coder)
 		if (new_node)
 		{
 			new_node->id = coder->id;
-			new_node->request_time = current_time_msec();
-			new_node->deadline = coder->action_time + 0ULL;
+			new_node->request_time = current_time_ms();
+			new_node->deadline = coder->deadline;
 			new_node->next = NULL;
 			pthread_mutex_lock(&queue->mutex);
 			curr = queue->head;
@@ -69,7 +69,7 @@ void	rq_add_unsafe(t_requestQueue *queue, t_coder *coder)
 		if (new_node)
 		{
 			new_node->id = coder->id;
-			new_node->request_time = current_time_msec();
+			new_node->request_time = current_time_ms();
 			new_node->deadline = coder->action_time + 0ULL;
 			new_node->next = NULL;
 			curr = queue->head;
@@ -95,4 +95,30 @@ void	rq_pop_unsafe(t_requestQueue *queue)
 		queue->head = queue->head->next;
 		free(removed);
 	}
+}
+
+void	rq_remove_unsafe(t_requestQueue *queue, int id)
+{
+	t_requestQueueNode	*curr;
+	t_requestQueueNode	*prev;
+	if (!queue || !queue->head)
+		return;
+
+	curr = queue->head;
+	prev = NULL;
+	while (curr)
+	{
+		if (curr->id == (t_byte)id)
+			break;
+		prev = curr;
+		curr = curr->next;
+	}
+	if (!curr)
+		return; /* id not found */
+	/* unlink and free only the found node */
+	if (prev)
+		prev->next = curr->next;
+	else
+		queue->head = curr->next;
+	free(curr);
 }

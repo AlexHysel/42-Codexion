@@ -23,11 +23,12 @@ static void	*monitor(void *tbl)
 	i = 0;
 	while (!table->failed)
 	{
-		if (c_delta(table, i) <= 0)
+		if (!coders[i]->finished && coders[i]->deadline <= current_time_ms())
 		{
 			table->failed = 1;
-			logger(table, "!!! Coder has burned out !!!\n");
+			logger("!!! Coder has burned out !!!\n", -1, table->start_time);
 			pthread_cond_broadcast(&table->condition);
+			pthread_cond_broadcast(&table->scheduler_condition);
 		}
 		i = (i + 1) % table->number_of_coders;
 		delay(1);
@@ -44,12 +45,12 @@ void	run_codexion(t_table *table)
 
 	i = -1;
 	while (++i < table->number_of_coders)
-		table->coders[i]->action_time = time_ms();
+		table->coders[i]->action_time = current_time_ms();
+	table->start_time = current_time_ms();
 	i = -1;
-	if (table->scheduler == EDF)
-		pthread_create(&s, NULL, scheduler, table);
+	pthread_create(&s, NULL, scheduler, table);
 	pthread_create(&m, NULL, monitor, table);
-	logger(table, "Monitoring...");
+	logger("Monitoring...", -1, table->start_time);
 	while (++i < table->number_of_coders)
 	{
 		data = malloc(sizeof(t_thread_data));
@@ -60,6 +61,8 @@ void	run_codexion(t_table *table)
 	i = -1;
 	while (++i < table->number_of_coders)
 		pthread_join(table->coders[i]->thread, NULL);
+	table->failed = 1;
+	pthread_cond_broadcast(&table->scheduler_condition);
 	pthread_join(m, NULL);
 	pthread_join(s, NULL);
 }

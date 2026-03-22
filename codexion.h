@@ -57,6 +57,7 @@ typedef struct s_coder
 	t_msec		action_time;
 	t_msec		deadline;
 	t_condition	condition;
+	t_byte		finished;
 }	t_coder;
 
 typedef struct s_queue_node
@@ -85,12 +86,12 @@ typedef struct s_table
 	t_schedulerType	scheduler;
 
 	t_mutex			dongle_mutex;
-	t_mutex			log_mutex;
 	t_requestQueue	*queue;
 	t_condition		condition;
 	t_condition		scheduler_condition;
 	t_uint			dongles;
 	t_byte			failed;
+	t_msec			start_time;
 	t_coder			**coders;
 }	t_table;
 
@@ -110,19 +111,17 @@ void	*scheduler(void *data);
 
 // ===== Models =====
 void	*c_life(void *thread_data);
-t_msec	c_action_time(t_table *table, t_byte id);
-void	c_update_action_time(t_table *table, t_byte id);
 
 void	rq_add(t_requestQueue *queue, t_coder *coder);
 void	rq_add_unsafe(t_requestQueue *queue, t_coder *coder);
 void	rq_pop(t_requestQueue *queue);
 void	rq_pop_unsafe(t_requestQueue *queue);
+void	rq_remove_unsafe(t_requestQueue *queue, int id);
 
 t_byte	t_get_dongles(t_table *table);
 
 // ===== Utils =====
 t_msec	current_time_ms(void);
-int		error(char *msg);
 void	delay(t_msec milliseconds);
-void	logger(t_table *table, char *msg);
-void	log_coder(t_table *table, char *msg, int id);
+void	logger(char *msg, t_byte id, t_msec start_time);
+int		error(char *msg);

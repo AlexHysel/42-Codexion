@@ -36,18 +36,16 @@ int	error(char *msg)
 	return (0);
 }
 
-void	logger(t_table *table, char *msg)
+void	logger(char *msg, t_byte id, t_msec start_time)
 {
-	pthread_mutex_lock(&table->log_mutex);
-	printf("%s\n", msg);
-	pthread_mutex_unlock(&table->log_mutex);
-}
+	static t_mutex	log_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-void	log_coder(t_table *table, char *msg, int id)
-{
-	pthread_mutex_lock(&table->log_mutex);
-	printf("%d: %s\n", id, msg);
-	pthread_mutex_unlock(&table->log_mutex);
+	pthread_mutex_lock(&log_mutex);
+	printf("%llu ", current_time_ms() - start_time);
+	if (id != 255)
+		printf("%d ", id);
+	printf("%s\n", msg);
+	pthread_mutex_unlock(&log_mutex);
 }
 
 void	delay(t_msec milliseconds)

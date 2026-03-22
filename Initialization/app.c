@@ -42,9 +42,8 @@ static t_table	*create_table(char **args)
 		else
 			table->scheduler = FIFO;
 		table->failed = 0;
-		table->queue = NULL;
+		table->queue = malloc(sizeof(t_requestQueue));
 		pthread_mutex_init(&table->dongle_mutex, NULL);
-		pthread_mutex_init(&table->log_mutex, NULL);
 		pthread_mutex_init(&table->queue->mutex, NULL);
 		pthread_cond_init(&table->condition, NULL);
 		pthread_cond_init(&table->scheduler_condition, NULL);
@@ -79,8 +78,10 @@ static t_coder	**create_coders(t_table *table)
 			coders[i] = malloc(sizeof(t_coder));
 			coders[i]->id = i;
 			coders[i]->action_time = 0;
+			coders[i]->deadline = -1;
 			coders[i]->thread = 0;
-			pthread_mutex_init(&coders[i]->action_time_mutex, NULL);
+			coders[i]->finished = 0;
+			pthread_cond_init(&coders[i]->condition, NULL);
 		}
 	}
 	return (coders);
@@ -103,8 +104,7 @@ int	app_run(int argc, char **args)
 			return (error("During coders creating."));
 		run_codexion(table);
 		pthread_mutex_destroy(&table->dongle_mutex);
-		pthread_mutex_destroy(&table->log_mutex);
-		pthread_mutex_destroy(&table->queue_mutex);
+		pthread_mutex_destroy(&table->queue->mutex);
 		pthread_cond_destroy(&table->condition);
 		pthread_cond_destroy(&table->scheduler_condition);
 	}
