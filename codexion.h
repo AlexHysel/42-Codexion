@@ -120,23 +120,23 @@ typedef struct s_thread_data
 }	t_thread_data;
 
 // ===== Initialization =====
-int		validate_args(char **args);
-t_table	*setup_codexion(char **args);
+int			validate_args(char **args);
+t_table		*setup_codexion(char **args);
 
 // ===== Codexion =====
-void	run_codexion(t_table *table);
-void	*scheduler(void *data);
+void		run_codexion(t_table *table);
+void		*scheduler(void *data);
 
 // ===== Models =====
-void	*c_life(void *thread_data);
+void		*c_life(void *thread_data);
 
-void	rq_add(t_requestQueue *queue, t_coder *coder);
-void	rq_pop(t_requestQueue *queue);
-void	rq_remove(t_requestQueue *queue, int id);
+void		rq_add(t_requestQueue *queue, t_coder *coder);
+void		rq_pop(t_requestQueue *queue);
+void		rq_remove(t_requestQueue *queue, int id);
 
 // ===== Utils =====
-t_msec	current_time_ms(void);
-void	delay(t_msec milliseconds);
+t_msec		current_time_ms(void);
+void		delay(t_msec milliseconds);
 
 void		add_log(t_logger *logger, char *msg, t_byte id);
 t_logger	*run_logger(void);

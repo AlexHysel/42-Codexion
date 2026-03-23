@@ -53,6 +53,8 @@ static void	*log(void *data)
 				printf("%s\n", log_data->msg);
 				free(log_data);
 			}
+			else
+				break ;
 		}
 	}
 	return (NULL);
@@ -70,7 +72,7 @@ t_logger	*run_logger(void)
 	logger->finished = 0;
 	pthread_mutex_init(&logger->mutex, NULL);
 	pthread_cond_init(&logger->condition, NULL);
-	if (pthread_create(&logger->thread, NULL, log, logger) != 0)
+	if (pthread_create(&logger->thread, NULL, log, logger))
 	{
 		pthread_mutex_destroy(&logger->mutex);
 		pthread_cond_destroy(&logger->condition);
@@ -96,9 +98,11 @@ void	stop_logger(t_logger *logger)
 	}
 	logger->finished = 1;
 	pthread_cond_broadcast(&logger->condition);
+	pthread_mutex_unlock(&logger->mutex);
 	pthread_join(logger->thread, NULL);
 	pthread_mutex_destroy(&logger->mutex);
 	pthread_cond_destroy(&logger->condition);
+	free(logger);
 }
 
 void	add_log(t_logger *logger, char *msg, t_byte id)
