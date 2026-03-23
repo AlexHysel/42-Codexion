@@ -12,6 +12,49 @@
 
 #include "../codexion.h"
 
+static void	free_table(t_table *table)
+{
+	t_uint				i;
+	t_requestQueueNode	*n;
+	t_requestQueueNode	*next;
+
+	if (table && table->queue)
+	{
+		pthread_mutex_lock(&table->queue->mutex);
+		n = table->queue->head;
+		while (n)
+		{
+			next = n->next;
+			free(n);
+			n = next;
+		}
+		table->queue->head = NULL;
+		pthread_mutex_unlock(&table->queue->mutex);
+		pthread_mutex_destroy(&table->queue->mutex);
+		free(table->queue);
+		table->queue = NULL;
+	}
+	if (table && table->coders)
+	{
+		i = 0;
+		while (i < table->number_of_coders)
+		{
+			if (table->coders[i])
+			{
+				pthread_cond_destroy(&table->coders[i]->condition);
+				free(table->coders[i]);
+			}
+			++i;
+		}
+		free(table->coders);
+		table->coders = NULL;
+	}
+	pthread_mutex_destroy(&table->dongle_mutex);
+	pthread_cond_destroy(&table->condition);
+	pthread_cond_destroy(&table->scheduler_condition);
+	free(table);
+}
+
 static void	*monitor(void *tbl)
 {
 	t_table	*table;
@@ -20,13 +63,14 @@ static void	*monitor(void *tbl)
 
 	table = (t_table *) tbl;
 	coders = table->coders;
+	add_log(table->logger, "Monitoring...", -1);
 	i = 0;
 	while (!table->failed)
 	{
 		if (!coders[i]->finished && coders[i]->deadline <= current_time_ms())
 		{
 			table->failed = 1;
-			logger("!!! Coder has burned out !!!\n", -1, table->start_time);
+			add_log(table->logger, "!!! Coder has burned out !!!\n", -1);
 			pthread_cond_broadcast(&table->condition);
 			pthread_cond_broadcast(&table->scheduler_condition);
 		}
@@ -46,11 +90,9 @@ void	run_codexion(t_table *table)
 	i = -1;
 	while (++i < table->number_of_coders)
 		table->coders[i]->action_time = current_time_ms();
-	table->start_time = current_time_ms();
 	i = -1;
 	pthread_create(&s, NULL, scheduler, table);
 	pthread_create(&m, NULL, monitor, table);
-	logger("Monitoring...", -1, table->start_time);
 	while (++i < table->number_of_coders)
 	{
 		data = malloc(sizeof(t_thread_data));
@@ -65,4 +107,5 @@ void	run_codexion(t_table *table)
 	pthread_cond_broadcast(&table->scheduler_condition);
 	pthread_join(m, NULL);
 	pthread_join(s, NULL);
+	free_table(table);
 }

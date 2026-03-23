@@ -42,7 +42,7 @@ void	*scheduler(void *data)
 	t_byte	id;
 
 	table = (t_table *) data;
-	logger("Scheduler launched...", -1, table->start_time);
+	add_log(table->logger, "Scheduler launched...", -1);
 	while (!table->failed)
 	{
 		pthread_mutex_lock(&table->queue->mutex);
@@ -52,24 +52,24 @@ void	*scheduler(void *data)
 			id = get_id_by_time(table->queue);
 			if (id != 255)
 			{
-				rq_remove_unsafe(table->queue, id);
+				rq_remove(table->queue, id);
 				pthread_cond_broadcast(&table->coders[id]->condition);
-				logger("Is next in queue", id, table->start_time);
+				add_log(table->logger, "Is next in queue", id);
 			}
 			else
-				logger("Request Queue is empty", -1, table->start_time);
+				add_log(table->logger, "Request Queue is empty", -1);
 		}
 		else if (!table->failed)
 		{
 			if (table->queue && table->queue->head)
 			{
 				id = table->queue->head->id;
-				rq_pop_unsafe(table->queue);
+				rq_pop(table->queue);
 				pthread_cond_broadcast(&table->coders[id]->condition);
-				logger("Is next in queue", id, table->start_time);
+				add_log(table->logger, "Is next in queue", id);
 			}
 			else
-				logger("Request Queue is empty", -1, table->start_time);
+				add_log(table->logger, "Request Queue is empty", -1);
 		}
 		pthread_mutex_unlock(&table->queue->mutex);
 	}

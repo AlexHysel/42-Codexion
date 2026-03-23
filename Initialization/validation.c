@@ -65,20 +65,20 @@ scheduler					- string
 int	validate_args(char **args)
 {
 	if (!is_uint(args[1]))
-		return (error("Number of coders should be unsigned int"));
+		return (!printf("Number of coders should be unsigned int"));
 	if (!is_msec(args[2]))
-		return (error("Time to burnout should be unsigned long long"));
+		return (!printf("Time to burnout should be unsigned long long"));
 	if (!is_msec(args[3]))
-		return (error("Time to compile should be unsigned long long"));
+		return (!printf("Time to compile should be unsigned long long"));
 	if (!is_msec(args[4]))
-		return (error("Time to debug should be unsigned long long"));
+		return (!printf("Time to debug should be unsigned long long"));
 	if (!is_msec(args[5]))
-		return (error("Time to refactor should be unsigned long long"));
+		return (!printf("Time to refactor should be unsigned long long"));
 	if (!is_uint(args[6]))
-		return (error("Compiles required should be unsigned int"));
+		return (!printf("Compiles required should be unsigned int"));
 	if (!is_msec(args[7]))
-		return (error("Dongle cooldown should be unsigned long long"));
+		return (!printf("Dongle cooldown should be unsigned long long"));
 	if (strcmp(args[8], FIFO_STR) != 0 && strcmp(args[8], EDF_STR) != 0)
-		return (printf("ERROR: Scheduler is not %s/%s", EDF_STR, FIFO_STR) * 0);
+		return (!printf("Scheduler is not %s/%s", EDF_STR, FIFO_STR));
 	return (1);
 }

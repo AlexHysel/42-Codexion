@@ -16,7 +16,7 @@ static void	simple_state(t_coder *coder, t_table *table, char *state)
 {
 	if (!table->failed)
 	{
-		logger(state, coder->id, table->start_time);
+		add_log(table->logger, state, coder->id);
 		coder->action_time = current_time_ms();
 		coder->deadline = coder->action_time + table->time_to_burnout;
 		if (state[0] == 'd')
@@ -29,11 +29,11 @@ static void	simple_state(t_coder *coder, t_table *table, char *state)
 static void	compile_state(t_coder *coder, t_table *table)
 {
 	pthread_mutex_lock(&table->queue->mutex);
-	rq_add_unsafe(table->queue, coder);
-	logger("Request...", coder->id, table->start_time);
+	rq_add(table->queue, coder);
+	add_log(table->logger, "Request...", coder->id);
 	pthread_cond_broadcast(&table->scheduler_condition);
 	pthread_cond_wait(&coder->condition, &table->queue->mutex);
-	logger("Waiting for dongles...", coder->id, table->start_time);
+	add_log(table->logger, "Waiting for dongles...", coder->id);
 	pthread_mutex_lock(&table->dongle_mutex);
 	while (!table->failed && table->dongles < 2)
 		pthread_cond_wait(&table->condition, &table->dongle_mutex);
@@ -42,10 +42,10 @@ static void	compile_state(t_coder *coder, t_table *table)
 	{
 		table->dongles -= 2;
 		pthread_mutex_unlock(&table->dongle_mutex);
-		logger("Dongles available.", coder->id, table->start_time);
+		add_log(table->logger, "Dongles available.", coder->id);
 		coder->action_time = current_time_ms();
 		coder->deadline = coder->action_time + table->time_to_burnout;
-		logger("Compiling...", coder->id, table->start_time);
+		add_log(table->logger, "Compiling...", coder->id);
 		delay(table->time_to_compile);
 		pthread_mutex_lock(&table->dongle_mutex);
 		table->dongles += 2;
@@ -76,6 +76,6 @@ void	*c_life(void *thread_data)
 		simple_state(coder, table, "refactoring");
 	}
 	coder->finished = 1;
-	logger("Finished coding!", coder->id, table->start_time);
+	add_log(table->logger, "Finished coding!", coder->id);
 	return (NULL);
 }

@@ -60,6 +60,24 @@ typedef struct s_coder
 	t_byte		finished;
 }	t_coder;
 
+typedef struct s_logNode
+{
+	t_byte				id;
+	char				*msg;
+	t_msec				time;
+	struct s_logNode	*next;
+}	t_logNode;
+
+typedef struct s_logger
+{
+	t_mutex		mutex;
+	t_condition	condition;
+	t_msec		start_time;
+	t_logNode	*log_list;
+	t_byte		finished;
+	pthread_t	thread;
+}	t_logger;
+
 typedef struct s_queue_node
 {
 	t_byte				id;
@@ -91,7 +109,7 @@ typedef struct s_table
 	t_condition		scheduler_condition;
 	t_uint			dongles;
 	t_byte			failed;
-	t_msec			start_time;
+	t_logger		*logger;
 	t_coder			**coders;
 }	t_table;
 
@@ -103,7 +121,7 @@ typedef struct s_thread_data
 
 // ===== Initialization =====
 int		validate_args(char **args);
-int		app_run(int argc, char **args);
+t_table	*setup_codexion(char **args);
 
 // ===== Codexion =====
 void	run_codexion(t_table *table);
@@ -113,15 +131,13 @@ void	*scheduler(void *data);
 void	*c_life(void *thread_data);
 
 void	rq_add(t_requestQueue *queue, t_coder *coder);
-void	rq_add_unsafe(t_requestQueue *queue, t_coder *coder);
 void	rq_pop(t_requestQueue *queue);
-void	rq_pop_unsafe(t_requestQueue *queue);
-void	rq_remove_unsafe(t_requestQueue *queue, int id);
-
-t_byte	t_get_dongles(t_table *table);
+void	rq_remove(t_requestQueue *queue, int id);
 
 // ===== Utils =====
 t_msec	current_time_ms(void);
 void	delay(t_msec milliseconds);
-void	logger(char *msg, t_byte id, t_msec start_time);
-int		error(char *msg);
+
+void		add_log(t_logger *logger, char *msg, t_byte id);
+t_logger	*run_logger(void);
+void		stop_logger(t_logger *logger);

@@ -12,16 +12,6 @@
 
 #include "../codexion.h"
 
-static void	print_not_enough_args(void)
-{
-	printf("Not enough arguments provided.\n");
-	printf("Arguments:\n");
-	printf("1. number_of_coders\n2. time_to_burnout\n");
-	printf("3. time_to_compile\n4. time_to_debug\n");
-	printf("5. time_to_refactor\n6. number_of_compiles_required\n");
-	printf("7. dongle_cooldown\n8. scheduler");
-}
-
 static t_table	*create_table(char **args)
 {
 	t_table	*table;
@@ -43,10 +33,19 @@ static t_table	*create_table(char **args)
 			table->scheduler = FIFO;
 		table->failed = 0;
 		table->queue = malloc(sizeof(t_requestQueue));
-		pthread_mutex_init(&table->dongle_mutex, NULL);
-		pthread_mutex_init(&table->queue->mutex, NULL);
-		pthread_cond_init(&table->condition, NULL);
-		pthread_cond_init(&table->scheduler_condition, NULL);
+		if (table->queue)
+		{
+			table->queue->head = NULL;
+			pthread_mutex_init(&table->dongle_mutex, NULL);
+			pthread_mutex_init(&table->queue->mutex, NULL);
+			pthread_cond_init(&table->condition, NULL);
+			pthread_cond_init(&table->scheduler_condition, NULL);
+		}
+		else
+		{
+			free(table);
+			return (NULL);
+		}
 	}
 	return (table);
 }
@@ -87,26 +86,23 @@ static t_coder	**create_coders(t_table *table)
 	return (coders);
 }
 
-int	app_run(int argc, char **args)
+t_table	*setup_codexion(char **args)
 {
 	t_table	*table;
 
-	if (argc != 9)
-		print_not_enough_args();
-	else if (validate_args(args))
+	table = NULL;
+	if (validate_args(args))
 	{
 		table = create_table(args);
 		if (!table)
-			return (error("During table creating."));
+			return (NULL);
 		display_table(table);
 		table->coders = create_coders(table);
 		if (!table->coders)
-			return (error("During coders creating."));
-		run_codexion(table);
-		pthread_mutex_destroy(&table->dongle_mutex);
-		pthread_mutex_destroy(&table->queue->mutex);
-		pthread_cond_destroy(&table->condition);
-		pthread_cond_destroy(&table->scheduler_condition);
+		{
+			free(table);
+			return (NULL);
+		}
 	}
-	return (1);
+	return (table);
 }
