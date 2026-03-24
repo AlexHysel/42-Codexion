@@ -41,7 +41,6 @@
 typedef unsigned int		t_uint;
 typedef unsigned long long	t_msec;
 typedef pthread_mutex_t		t_mutex;
-typedef pthread_cond_t		t_condition;
 typedef unsigned char		t_byte;
 
 typedef enum e_scheduler
@@ -50,13 +49,19 @@ typedef enum e_scheduler
 	FIFO
 }	t_schedulerType;
 
+typedef struct s_condition
+{
+	pthread_cond_t	cond;
+	t_byte			flag;
+}	t_condition;
+
 typedef struct s_coder
 {
 	t_uint		id;
 	pthread_t	thread;
 	t_msec		action_time;
 	t_msec		deadline;
-	t_condition	condition;
+	t_condition	*condition;
 	t_byte		finished;
 }	t_coder;
 
@@ -71,7 +76,7 @@ typedef struct s_logNode
 typedef struct s_logger
 {
 	t_mutex		mutex;
-	t_condition	condition;
+	t_condition	*condition;
 	t_msec		start_time;
 	t_logNode	*log_list;
 	t_byte		finished;
@@ -105,8 +110,8 @@ typedef struct s_table
 
 	t_mutex			dongle_mutex;
 	t_requestQueue	*queue;
-	t_condition		condition;
-	t_condition		scheduler_condition;
+	t_condition		*condition;
+	t_condition		*scheduler_condition;
 	t_uint			dongles;
 	t_byte			failed;
 	t_logger		*logger;
@@ -126,6 +131,7 @@ t_table		*setup_codexion(char **args);
 // ===== Codexion =====
 void		run_codexion(t_table *table);
 void		*scheduler(void *data);
+void		free_table(t_table *table);
 
 // ===== Models =====
 void		*c_life(void *thread_data);
@@ -137,6 +143,11 @@ void		rq_remove(t_requestQueue *queue, int id);
 // ===== Utils =====
 t_msec		current_time_ms(void);
 void		delay(t_msec milliseconds);
+
+void		wait(t_condition *cond, t_mutex *mutex, t_byte lock);
+void		broadcast(t_condition *condition, t_mutex *mutex);
+void		condition_init(t_condition **condition);
+void		condition_destroy(t_condition *condition);
 
 void		add_log(t_logger *logger, char *msg, t_byte id);
 t_logger	*run_logger(void);

@@ -12,6 +12,21 @@
 
 #include "../codexion.h"
 
+static void	create_queue(t_table *table)
+{
+	table->queue = malloc(sizeof(t_requestQueue));
+	if (table->queue)
+	{
+		table->queue->head = NULL;
+		pthread_mutex_init(&table->dongle_mutex, NULL);
+		pthread_mutex_init(&table->queue->mutex, NULL);
+		condition_init(&table->condition);
+		condition_init(&table->scheduler_condition);
+	}
+	else
+		free(table);
+}
+
 static t_table	*create_table(char **args)
 {
 	t_table	*table;
@@ -21,6 +36,8 @@ static t_table	*create_table(char **args)
 	{
 		table->number_of_coders = atoi(args[1]);
 		table->dongles = table->number_of_coders;
+		if (table->number_of_coders == 1)
+			table->dongles = 2;
 		table->time_to_burnout = atoi(args[2]);
 		table->time_to_compile = atoi(args[3]);
 		table->time_to_debug = atoi(args[4]);
@@ -32,20 +49,9 @@ static t_table	*create_table(char **args)
 		else
 			table->scheduler = FIFO;
 		table->failed = 0;
-		table->queue = malloc(sizeof(t_requestQueue));
-		if (table->queue)
-		{
-			table->queue->head = NULL;
-			pthread_mutex_init(&table->dongle_mutex, NULL);
-			pthread_mutex_init(&table->queue->mutex, NULL);
-			pthread_cond_init(&table->condition, NULL);
-			pthread_cond_init(&table->scheduler_condition, NULL);
-		}
-		else
-		{
-			free(table);
+		create_queue(table);
+		if (!table->queue)
 			return (NULL);
-		}
 	}
 	return (table);
 }
@@ -80,7 +86,7 @@ static t_coder	**create_coders(t_table *table)
 			coders[i]->deadline = -1;
 			coders[i]->thread = 0;
 			coders[i]->finished = 0;
-			pthread_cond_init(&coders[i]->condition, NULL);
+			condition_init(&coders[i]->condition);
 		}
 	}
 	return (coders);

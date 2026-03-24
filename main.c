@@ -40,6 +40,7 @@ int	main(int argc, char **args)
 			{
 				table->logger = logger;
 				run_codexion(table);
+				free_table(table);
 			}
 		}
 		stop_logger(logger);

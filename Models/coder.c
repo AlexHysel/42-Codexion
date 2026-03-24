@@ -31,12 +31,12 @@ static void	compile_state(t_coder *coder, t_table *table)
 	pthread_mutex_lock(&table->queue->mutex);
 	rq_add(table->queue, coder);
 	add_log(table->logger, "Request...", coder->id);
-	pthread_cond_broadcast(&table->scheduler_condition);
-	pthread_cond_wait(&coder->condition, &table->queue->mutex);
+	broadcast(table->scheduler_condition, NULL);
+	wait(coder->condition, &table->queue->mutex, 0);
 	add_log(table->logger, "Waiting for dongles...", coder->id);
 	pthread_mutex_lock(&table->dongle_mutex);
 	while (!table->failed && table->dongles < 2)
-		pthread_cond_wait(&table->condition, &table->dongle_mutex);
+		pthread_cond_wait(&table->condition->cond, &table->dongle_mutex);
 	pthread_mutex_unlock(&table->queue->mutex);
 	if (!table->failed)
 	{
@@ -49,9 +49,8 @@ static void	compile_state(t_coder *coder, t_table *table)
 		delay(table->time_to_compile);
 		pthread_mutex_lock(&table->dongle_mutex);
 		table->dongles += 2;
-		pthread_cond_broadcast(&table->condition);
-		pthread_cond_broadcast(&table->scheduler_condition);
-		pthread_mutex_unlock(&table->dongle_mutex);
+		broadcast(table->condition, NULL);
+		broadcast(table->scheduler_condition, &table->dongle_mutex);
 	}
 }
 

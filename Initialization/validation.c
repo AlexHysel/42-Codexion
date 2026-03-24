@@ -21,6 +21,8 @@ static int	is_uint(char *num)
 	size_t	numlen;
 	size_t	i;
 
+	if (!strcmp(num, "0"))
+		return (0);
 	numlen = strlen(num);
 	i = 0;
 	while (i < numlen)
@@ -65,20 +67,20 @@ scheduler					- string
 int	validate_args(char **args)
 {
 	if (!is_uint(args[1]))
-		return (!printf("Number of coders should be unsigned int"));
+		return (!printf("Number of coders should be unsigned int\n"));
 	if (!is_msec(args[2]))
-		return (!printf("Time to burnout should be unsigned long long"));
+		return (!printf("Time to burnout should be unsigned long long\n"));
 	if (!is_msec(args[3]))
-		return (!printf("Time to compile should be unsigned long long"));
+		return (!printf("Time to compile should be unsigned long long\n"));
 	if (!is_msec(args[4]))
-		return (!printf("Time to debug should be unsigned long long"));
+		return (!printf("Time to debug should be unsigned long long\n"));
 	if (!is_msec(args[5]))
-		return (!printf("Time to refactor should be unsigned long long"));
+		return (!printf("Time to refactor should be unsigned long long\n"));
 	if (!is_uint(args[6]))
-		return (!printf("Compiles required should be unsigned int"));
+		return (!printf("Compiles required should be unsigned int\n"));
 	if (!is_msec(args[7]))
-		return (!printf("Dongle cooldown should be unsigned long long"));
+		return (!printf("Dongle cooldown should be unsigned long long\n"));
 	if (strcmp(args[8], FIFO_STR) != 0 && strcmp(args[8], EDF_STR) != 0)
-		return (!printf("Scheduler is not %s/%s", EDF_STR, FIFO_STR));
+		return (!printf("Scheduler is not %s/%s\n", EDF_STR, FIFO_STR));
 	return (1);
 }

@@ -38,40 +38,29 @@ static t_byte	get_id_by_time(t_requestQueue *queue)
 
 void	*scheduler(void *data)
 {
-	t_table	*table;
+	t_table	*t;
 	t_byte	id;
 
-	table = (t_table *) data;
-	add_log(table->logger, "Scheduler launched...", -1);
-	while (!table->failed)
+	t = (t_table *) data;
+	add_log(t->logger, "Scheduler launched...", -1);
+	while (!t->failed)
 	{
-		pthread_mutex_lock(&table->queue->mutex);
-		pthread_cond_wait(&table->scheduler_condition, &table->queue->mutex);
-		if (!table->failed && table->scheduler == EDF)
+		wait(t->scheduler_condition, &t->queue->mutex, 1);
+		if (!t->failed && t->scheduler == EDF && t->queue && t->queue->head)
 		{
-			id = get_id_by_time(table->queue);
-			if (id != 255)
-			{
-				rq_remove(table->queue, id);
-				pthread_cond_broadcast(&table->coders[id]->condition);
-				add_log(table->logger, "Is next in queue", id);
-			}
-			else
-				add_log(table->logger, "Request Queue is empty", -1);
+			id = get_id_by_time(t->queue);
+			rq_remove(t->queue, id);
+			broadcast(t->coders[id]->condition, NULL);
+			add_log(t->logger, "Is next in queue", id);
 		}
-		else if (!table->failed)
+		else if (!t->failed && t->queue && t->queue->head)
 		{
-			if (table->queue && table->queue->head)
-			{
-				id = table->queue->head->id;
-				rq_pop(table->queue);
-				pthread_cond_broadcast(&table->coders[id]->condition);
-				add_log(table->logger, "Is next in queue", id);
-			}
-			else
-				add_log(table->logger, "Request Queue is empty", -1);
+			id = t->queue->head->id;
+			rq_pop(t->queue);
+			broadcast(t->coders[id]->condition, NULL);
+			add_log(t->logger, "Is next in queue", id);
 		}
-		pthread_mutex_unlock(&table->queue->mutex);
+		pthread_mutex_unlock(&t->queue->mutex);
 	}
 	return (NULL);
 }

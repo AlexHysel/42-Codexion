@@ -38,23 +38,17 @@ static void	*log(void *data)
 	logger = (t_logger *)data;
 	while (!logger->finished)
 	{
-		pthread_mutex_lock(&logger->mutex);
-		while (!logger->finished && !logger->log_list)
-			pthread_cond_wait(&logger->condition, &logger->mutex);
+		wait(logger->condition, &logger->mutex, 1);
 		pthread_mutex_unlock(&logger->mutex);
-		while (!logger->finished)
+		log_data = pop_log(logger);
+		while (log_data && !logger->finished)
 		{
+			printf("%llu ", log_data->time);
+			if (log_data->id != 255)
+				printf("%d ", log_data->id);
+			printf("%s\n", log_data->msg);
+			free(log_data);
 			log_data = pop_log(logger);
-			if (log_data)
-			{
-				printf("%llu ", current_time_ms() - logger->start_time);
-				if (log_data->id != 255)
-					printf("%d ", log_data->id);
-				printf("%s\n", log_data->msg);
-				free(log_data);
-			}
-			else
-				break ;
 		}
 	}
 	return (NULL);
@@ -65,21 +59,22 @@ t_logger	*run_logger(void)
 	t_logger	*logger;
 
 	logger = malloc(sizeof(t_logger));
-	if (!logger)
-		return (NULL);
-	logger->log_list = NULL;
-	logger->start_time = current_time_ms();
-	logger->finished = 0;
-	pthread_mutex_init(&logger->mutex, NULL);
-	pthread_cond_init(&logger->condition, NULL);
-	if (pthread_create(&logger->thread, NULL, log, logger))
+	if (logger)
 	{
-		pthread_mutex_destroy(&logger->mutex);
-		pthread_cond_destroy(&logger->condition);
-		free(logger);
-		return (NULL);
+		logger->log_list = NULL;
+		logger->start_time = current_time_ms();
+		logger->finished = 0;
+		pthread_mutex_init(&logger->mutex, NULL);
+		condition_init(&logger->condition);
+		if (pthread_create(&logger->thread, NULL, log, logger))
+		{
+			pthread_mutex_destroy(&logger->mutex);
+			condition_destroy(logger->condition);
+			free(logger);
+			return (NULL);
+		}
+		add_log(logger, "Logger launched...", (t_byte)255);
 	}
-	add_log(logger, "Logger launched...", (t_byte)-1);
 	return (logger);
 }
 
@@ -88,6 +83,8 @@ void	stop_logger(t_logger *logger)
 	t_logNode	*current;
 	t_logNode	*next;
 
+	printf("df\n");
+	fflush(stdout);
 	pthread_mutex_lock(&logger->mutex);
 	current = logger->log_list;
 	while (current)
@@ -97,11 +94,10 @@ void	stop_logger(t_logger *logger)
 		current = next;
 	}
 	logger->finished = 1;
-	pthread_cond_broadcast(&logger->condition);
-	pthread_mutex_unlock(&logger->mutex);
+	broadcast(logger->condition, &logger->mutex);
 	pthread_join(logger->thread, NULL);
 	pthread_mutex_destroy(&logger->mutex);
-	pthread_cond_destroy(&logger->condition);
+	condition_destroy(logger->condition);
 	free(logger);
 }
 
@@ -129,6 +125,5 @@ void	add_log(t_logger *logger, char *msg, t_byte id)
 			current = current->next;
 		current->next = log_data;
 	}
-	pthread_mutex_unlock(&logger->mutex);
-	pthread_cond_broadcast(&logger->condition);
+	broadcast(logger->condition, &logger->mutex);
 }

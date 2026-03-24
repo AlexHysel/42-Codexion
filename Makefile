@@ -21,7 +21,7 @@ UTILS_DIR := Utils
 INIT_SRCS := app.c validation.c
 CODEXION_SRCS := codexion.c scheduler.c
 MODELS_SRCS := coder.c queue.c
-UTILS_SRCS := utils.c logger.c
+UTILS_SRCS := utils.c logger.c pthread.c
 
 INIT_FILES := $(addprefix $(INIT_DIR)/,$(INIT_SRCS))
 CODEXION_FILES := $(addprefix $(CODEXION_DIR)/,$(CODEXION_SRCS))
