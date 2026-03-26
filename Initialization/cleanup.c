@@ -21,8 +21,8 @@ static void	free_coders(t_table *table)
 		i = -1;
 		while (++i < table->number_of_coders)
 		{
-			free(table->coders[i]);
 			condition_destroy(table->coders[i]->condition);
+			free(table->coders[i]);
 		}
 		free(table->coders);
 		table->coders = NULL;
@@ -41,6 +41,7 @@ void	cleanup(t_table *table)
 			condition_destroy(table->scheduler->condition);
 			pthread_mutex_destroy(&table->scheduler->mutex);
 			free(table->scheduler->queue);
+			free(table->scheduler);
 		}
 		if (table->coders)
 			free_coders(table);

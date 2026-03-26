@@ -33,17 +33,14 @@ static void	simple_state(t_coder *coder, t_table *table, t_state state)
 
 static void	compile_state(t_coder *coder, t_table *table)
 {
-	t_scheduler	*s;
-
-	s = table->scheduler;
-	pthread_mutex_lock(&s->queue->mutex);
-	rq_add(s->queue, coder);
-	broadcast(s->condition, NULL);
-	wait(coder->condition, &s->queue->mutex, 0);
+	pthread_mutex_lock(&table->scheduler->queue->mutex);
+	rq_add(table->scheduler->queue, coder);
+	broadcast(table->scheduler->condition, NULL);
+	wait(coder->condition, &table->scheduler->queue->mutex, 0);
 	pthread_mutex_lock(&table->dongle_mutex);
 	while (!is_failed(table) && table->dongles < 2)
 		pthread_cond_wait(&table->condition->cond, &table->dongle_mutex);
-	pthread_mutex_unlock(&s->queue->mutex);
+	pthread_mutex_unlock(&table->scheduler->queue->mutex);
 	if (is_failed(table))
 		pthread_mutex_unlock(&table->dongle_mutex);
 	else
@@ -54,7 +51,9 @@ static void	compile_state(t_coder *coder, t_table *table)
 		coder->deadline = coder->action_time + table->time_to_burnout;
 		add_log(table->logger, "is compiling", coder->id);
 		delay(table->time_to_compile);
-		pthread_mutex_unlock(&s->queue->mutex);
+		pthread_mutex_unlock(&table->scheduler->queue->mutex);
+		if (coder->delayed)
+			pthread_join(coder->delayed, NULL);
 		pthread_create(&coder->delayed, NULL, delayed_dongle_release, table);
 	}
 	broadcast(table->scheduler->condition, NULL);
@@ -81,7 +80,7 @@ void	*c_life(void *thread_data)
 		simple_state(coder, table, REFACTORING);
 	}
 	coder->finished = 1;
-	if (!coder->delayed)
+	if (coder->delayed)
 		pthread_join(coder->delayed, NULL);
 	return (NULL);
 }
