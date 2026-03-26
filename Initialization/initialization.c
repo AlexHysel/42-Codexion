@@ -97,6 +97,7 @@ static t_coder	**create_coders(t_table *table)
 			coders[i]->thread = 0;
 			coders[i]->finished = 0;
 			coders[i]->delayed = 0;
+			pthread_mutex_init(&coders[i]->deadline_mutex, NULL);
 			condition_init(&coders[i]->condition);
 		}
 	}

@@ -12,6 +12,24 @@
 
 #include "../codexion.h"
 
+static void	update_time(t_coder *coder, t_msec time_to_burnout)
+{
+	coder->action_time = current_time_ms();
+	pthread_mutex_lock(&coder->deadline_mutex);
+	coder->deadline = coder->action_time + time_to_burnout;
+	pthread_mutex_unlock(&coder->deadline_mutex);
+}
+
+t_msec	get_deadline(t_coder *coder)
+{
+	t_msec	deadline;
+
+	pthread_mutex_lock(&coder->deadline_mutex);
+	deadline = coder->deadline;
+	pthread_mutex_unlock(&coder->deadline_mutex);
+	return (deadline);
+}
+
 static void	simple_state(t_coder *coder, t_table *table, t_state state)
 {
 	if (!table->failed)
@@ -47,8 +65,7 @@ static void	compile_state(t_coder *coder, t_table *table)
 	{
 		table->dongles -= 2;
 		pthread_mutex_unlock(&table->dongle_mutex);
-		coder->action_time = current_time_ms();
-		coder->deadline = coder->action_time + table->time_to_burnout;
+		update_time(coder, table->time_to_burnout);
 		add_log(table->logger, "is compiling", coder->id);
 		delay(table->time_to_compile);
 		pthread_mutex_unlock(&table->scheduler->queue->mutex);

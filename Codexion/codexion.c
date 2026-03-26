@@ -23,7 +23,8 @@ static void	*monitor(void *tbl)
 	i = 0;
 	while (!is_failed(table))
 	{
-		if (!coders[i]->finished && coders[i]->deadline <= current_time_ms())
+		if (!coders[i]->finished
+			&& get_deadline(coders[i]) <= current_time_ms())
 		{
 			add_log(table->logger, "burned out", i);
 			fail(table);
@@ -66,10 +67,7 @@ void	run_codexion(t_table *table)
 	{
 		data = malloc(sizeof(t_thread_data));
 		if (!data)
-		{
-			add_log(table->logger, "Failed to create thread data", i);
 			break ;
-		}
 		data->id = i;
 		data->table = table;
 		table->coders[i]->action_time = current_time_ms();

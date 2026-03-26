@@ -12,37 +12,43 @@
 
 #include "codexion.h"
 
-static void	print_not_enough_args(void)
+static int	python_sucks(char **args)
 {
-	printf("Not enough arguments provided.\n");
-	printf("Arguments:\n");
-	printf("1. number_of_coders\n2. time_to_burnout\n");
-	printf("3. time_to_compile\n4. time_to_debug\n");
-	printf("5. time_to_refactor\n6. number_of_compiles_required\n");
-	printf("7. dongle_cooldown\n8. scheduler");
+	int			status;
+	t_logger	*logger;
+	t_table		*table;
+
+	status = 0;
+	logger = run_logger();
+	if (logger)
+	{
+		table = setup_codexion(args);
+		if (table && table->scheduler && table->scheduler->queue)
+		{
+			table->logger = logger;
+			run_codexion(table);
+			cleanup(table);
+		}
+		else
+			status = 1;
+		stop_logger(logger);
+	}
+	else
+		status = 1;
+	return (status);
 }
 
 int	main(int argc, char **args)
 {
-	t_table		*table;
-	t_logger	*logger;
-
-	logger = NULL;
 	if (argc != 9)
-		print_not_enough_args();
-	else if (validate_args(args))
 	{
-		logger = run_logger();
-		if (logger)
-		{
-			table = setup_codexion(args);
-			if (table)
-			{
-				table->logger = logger;
-				run_codexion(table);
-				cleanup(table);
-			}
-		}
-		stop_logger(logger);
+		write(2, "Error\n", 6);
+		write(2, "Usage: ./codexion number_of_coders time_to_burnout ", 51);
+		write(2, "time_to_compile time_to_debug time_to_refactor ", 47);
+		write(2, "num_compiles_required [dongle_cooldown] [scheduler]\n", 52);
+		return (1);
 	}
+	else if (validate_args(args))
+		return (python_sucks(args));
+	return (1);
 }

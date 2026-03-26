@@ -68,6 +68,7 @@ typedef struct s_coder
 	pthread_t	delayed;
 	t_msec		action_time;
 	t_msec		deadline;
+	t_mutex		deadline_mutex;
 	t_condition	*condition;
 	t_byte		finished;
 }	t_coder;
@@ -151,6 +152,7 @@ void		cleanup(t_table *table);
 
 // ===== Models =====
 void		*c_life(void *thread_data);
+t_msec		get_deadline(t_coder *coder);
 
 void		rq_add(t_requestQueue *queue, t_coder *coder);
 void		rq_pop(t_requestQueue *queue);

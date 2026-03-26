@@ -22,6 +22,7 @@ static void	free_coders(t_table *table)
 		while (++i < table->number_of_coders)
 		{
 			condition_destroy(table->coders[i]->condition);
+			pthread_mutex_destroy(&table->coders[i]->deadline_mutex);
 			free(table->coders[i]);
 		}
 		free(table->coders);
