@@ -18,7 +18,7 @@ CODEXION_DIR := Codexion
 MODELS_DIR := Models
 UTILS_DIR := Utils
 
-INIT_SRCS := app.c validation.c
+INIT_SRCS := initialization.c validation.c cleanup.c
 CODEXION_SRCS := codexion.c scheduler.c
 MODELS_SRCS := coder.c queue.c
 UTILS_SRCS := utils.c logger.c pthread.c

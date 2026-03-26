@@ -51,7 +51,7 @@ void	rq_pop(t_requestQueue *queue)
 	}
 }
 
-void	rq_remove(t_requestQueue *queue, int id)
+void	rq_remove(t_requestQueue *queue, t_byte id)
 {
 	t_requestQueueNode	*curr;
 	t_requestQueueNode	*prev;
@@ -62,7 +62,7 @@ void	rq_remove(t_requestQueue *queue, int id)
 		prev = NULL;
 		while (curr)
 		{
-			if (curr->id == (t_byte)id)
+			if (curr->id == id)
 				break ;
 			prev = curr;
 			curr = curr->next;

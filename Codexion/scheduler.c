@@ -38,63 +38,62 @@ static t_byte	get_id_by_time(t_requestQueue *queue)
 
 static void	release_all_coders(t_table *table)
 {
-	t_byte	id;
+	t_byte			id;
+	t_requestQueue	*queue;
 
+	queue = table->scheduler->queue;
 	broadcast(table->condition, NULL);
-	if (table && table->queue && table->queue->head)
+	if (table && queue && queue->head)
 	{
-		while (table->queue->head)
+		while (queue->head)
 		{
-			id = table->queue->head->id;
-			add_log(table->logger, "Returned", id);
-			rq_pop(table->queue);
+			id = queue->head->id;
+			rq_pop(queue);
 			broadcast(table->coders[id]->condition, NULL);
 		}
 	}
 }
 
-void	finish_sceduler(t_table *table)
+void	finish_scheduler(t_scheduler *scheduler)
 {
-	pthread_mutex_lock(&table->scheduler_mutex);
-	table->scheduler_finish = 1;
-	broadcast(table->scheduler_condition, &table->scheduler_mutex);
+	pthread_mutex_lock(&scheduler->mutex);
+	scheduler->finished = 1;
+	broadcast(scheduler->condition, &scheduler->mutex);
 }
 
-static t_byte	finished(t_table *table)
+static t_byte	finished(t_scheduler *scheduler)
 {
 	t_byte	status;
 
-	pthread_mutex_lock(&table->scheduler_mutex);
-	status = table->scheduler_finish;
-	pthread_mutex_unlock(&table->scheduler_mutex);
+	pthread_mutex_lock(&scheduler->mutex);
+	status = scheduler->finished;
+	pthread_mutex_unlock(&scheduler->mutex);
 	return (status);
 }
 
 void	*scheduler(void *data)
 {
-	t_table	*t;
-	t_byte	id;
+	t_table		*t;
+	t_scheduler	*s;
+	t_byte		id;
 
 	t = (t_table *) data;
-	while (!finished(t))
+	s = t->scheduler;
+	while (!finished(s))
 	{
-		wait(t->scheduler_condition, &t->queue->mutex, 1);
+		wait(s->condition, &s->queue->mutex, 1);
 		if (is_failed(t))
 			release_all_coders(t);
-		else if (t->scheduler == EDF && t->queue && t->queue->head)
+		else if (s->queue && s->queue->head)
 		{
-			id = get_id_by_time(t->queue);
-			rq_remove(t->queue, id);
+			if (s->type == EDF)
+				id = get_id_by_time(s->queue);
+			else
+				id = s->queue->head->id;
+			rq_remove(s->queue, id);
 			broadcast(t->coders[id]->condition, NULL);
 		}
-		else if (t->queue && t->queue->head)
-		{
-			id = t->queue->head->id;
-			rq_pop(t->queue);
-			broadcast(t->coders[id]->condition, NULL);
-		}
-		pthread_mutex_unlock(&t->queue->mutex);
+		pthread_mutex_unlock(&s->queue->mutex);
 	}
-	add_log(t->logger, "Scheduler finished", -1);
 	return (NULL);
 }

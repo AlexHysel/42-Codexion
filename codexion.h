@@ -104,6 +104,15 @@ typedef struct s_queue
 	t_requestQueueNode	*head;
 }	t_requestQueue;
 
+typedef struct s_scheduler
+{
+	t_mutex			mutex;
+	t_byte			finished;
+	t_condition		*condition;
+	t_schedulerType	type;
+	t_requestQueue	*queue;
+}	t_scheduler;
+
 typedef struct s_table
 {
 	t_uint			number_of_coders;
@@ -113,15 +122,11 @@ typedef struct s_table
 	t_msec			time_to_refactor;
 	t_uint			compiles_required;
 	t_msec			dongle_cooldown;
-	t_schedulerType	scheduler;
+	t_scheduler		*scheduler;
 
-	t_mutex			dongle_mutex;
-	t_requestQueue	*queue;
 	t_condition		*condition;
-	t_condition		*scheduler_condition;
 	t_uint			dongles;
-	t_byte			scheduler_finish;
-	t_mutex			scheduler_mutex;
+	t_mutex			dongle_mutex;
 	t_byte			failed;
 	t_mutex			failed_mutex;
 	t_logger		*logger;
@@ -141,15 +146,15 @@ t_table		*setup_codexion(char **args);
 // ===== Codexion =====
 void		run_codexion(t_table *table);
 void		*scheduler(void *data);
-void		finish_sceduler(t_table *table);
-void		free_table(t_table *table);
+void		finish_scheduler(t_scheduler *scheduler);
+void		cleanup(t_table *table);
 
 // ===== Models =====
 void		*c_life(void *thread_data);
 
 void		rq_add(t_requestQueue *queue, t_coder *coder);
 void		rq_pop(t_requestQueue *queue);
-void		rq_remove(t_requestQueue *queue, int id);
+void		rq_remove(t_requestQueue *queue, t_byte id);
 
 // ===== Utils =====
 t_msec		current_time_ms(void);

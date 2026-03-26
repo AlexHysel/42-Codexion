@@ -12,45 +12,6 @@
 
 #include "../codexion.h"
 
-static void	free_coders(t_table *table)
-{
-	t_byte	i;
-
-	if (table && table->coders)
-	{
-		i = -1;
-		while (++i < table->number_of_coders)
-			free(table->coders[i]);
-		free(table->coders);
-		table->coders = NULL;
-	}
-}
-
-void	free_table(t_table *table)
-{
-	t_requestQueueNode	*n;
-	t_requestQueueNode	*next;
-
-	if (table && table->queue)
-	{
-		n = table->queue->head;
-		while (n)
-		{
-			next = n->next;
-			free(n);
-			n = next;
-		}
-		pthread_mutex_destroy(&table->queue->mutex);
-		free(table->queue);
-	}
-	free_coders(table);
-	pthread_mutex_destroy(&table->dongle_mutex);
-	pthread_mutex_destroy(&table->failed_mutex);
-	condition_destroy(table->condition);
-	condition_destroy(table->scheduler_condition);
-	free(table);
-}
-
 static void	*monitor(void *tbl)
 {
 	t_table	*table;
@@ -66,7 +27,7 @@ static void	*monitor(void *tbl)
 		{
 			add_log(table->logger, "burned out", i);
 			fail(table);
-			broadcast(table->scheduler_condition, NULL);
+			broadcast(table->scheduler->condition, NULL);
 			broadcast(table->condition, &table->dongle_mutex);
 		}
 		i = (i + 1) % table->number_of_coders;
@@ -83,8 +44,8 @@ static void	join_threads(t_table *table, pthread_t m, pthread_t s)
 	while (++i < table->number_of_coders)
 		if (table->coders[i]->thread)
 			pthread_join(table->coders[i]->thread, NULL);
-	table->failed = 1;
-	finish_sceduler(table);
+	fail(table);
+	finish_scheduler(table->scheduler);
 	pthread_join(m, NULL);
 	pthread_join(s, NULL);
 }
@@ -115,5 +76,4 @@ void	run_codexion(t_table *table)
 		pthread_create(&table->coders[i]->thread, NULL, c_life, data);
 	}
 	join_threads(table, m, s);
-
 }
