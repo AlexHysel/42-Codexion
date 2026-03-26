@@ -114,6 +114,7 @@ typedef struct s_table
 	t_condition		*scheduler_condition;
 	t_uint			dongles;
 	t_byte			failed;
+	t_mutex			failed_mutex;
 	t_logger		*logger;
 	t_coder			**coders;
 }	t_table;
@@ -143,6 +144,9 @@ void		rq_remove(t_requestQueue *queue, int id);
 // ===== Utils =====
 t_msec		current_time_ms(void);
 void		delay(t_msec milliseconds);
+void		fail(t_table *table);
+t_byte		is_failed(t_table *table);
+void		*delayed_dongle_release(void *data);
 
 void		wait(t_condition *cond, t_mutex *mutex, t_byte lock);
 void		broadcast(t_condition *condition, t_mutex *mutex);

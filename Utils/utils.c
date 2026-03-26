@@ -25,3 +25,32 @@ void	delay(t_msec milliseconds)
 {
 	usleep(milliseconds * 1000);
 }
+
+t_byte	is_failed(t_table *table)
+{
+	t_byte	failed;
+
+	pthread_mutex_lock(&table->failed_mutex);
+	failed = table->failed;
+	pthread_mutex_unlock(&table->failed_mutex);
+	return (failed);
+}
+
+void	fail(t_table *table)
+{
+	pthread_mutex_lock(&table->failed_mutex);
+	table->failed = 1;
+	pthread_mutex_unlock(&table->failed_mutex);
+}
+
+void	*delayed_dongle_release(void *data)
+{
+	t_table	*table;
+
+	table = (t_table *)data;
+	delay(table->dongle_cooldown);
+	pthread_mutex_lock(&table->dongle_mutex);
+	table->dongles += 2;
+	broadcast(table->condition, &table->dongle_mutex);
+	return (NULL);
+}

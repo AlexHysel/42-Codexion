@@ -43,17 +43,17 @@ void	*scheduler(void *data)
 
 	t = (t_table *) data;
 	add_log(t->logger, "Scheduler launched...", -1);
-	while (!t->failed)
+	while (!is_failed(t))
 	{
 		wait(t->scheduler_condition, &t->queue->mutex, 1);
-		if (!t->failed && t->scheduler == EDF && t->queue && t->queue->head)
+		if (is_failed(t) && t->scheduler == EDF && t->queue && t->queue->head)
 		{
 			id = get_id_by_time(t->queue);
 			rq_remove(t->queue, id);
 			broadcast(t->coders[id]->condition, NULL);
 			add_log(t->logger, "Is next in queue", id);
 		}
-		else if (!t->failed && t->queue && t->queue->head)
+		else if (!is_failed(t) && t->queue && t->queue->head)
 		{
 			id = t->queue->head->id;
 			rq_pop(t->queue);
@@ -62,5 +62,6 @@ void	*scheduler(void *data)
 		}
 		pthread_mutex_unlock(&t->queue->mutex);
 	}
+	add_log(t->logger, "Scheduler finished.", -1);
 	return (NULL);
 }

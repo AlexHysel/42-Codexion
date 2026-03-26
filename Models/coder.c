@@ -29,16 +29,25 @@ static void	simple_state(t_coder *coder, t_table *table, char *state)
 static void	compile_state(t_coder *coder, t_table *table)
 {
 	pthread_mutex_lock(&table->queue->mutex);
+	if (is_failed(table))
+	{
+		pthread_mutex_unlock(&table->queue->mutex);
+		return ;
+	}
 	rq_add(table->queue, coder);
 	add_log(table->logger, "Request...", coder->id);
+	if (is_failed(table))
+	{
+		pthread_mutex_unlock(&table->queue->mutex);
+		return ;
+	}
 	broadcast(table->scheduler_condition, NULL);
 	wait(coder->condition, &table->queue->mutex, 0);
-	add_log(table->logger, "Waiting for dongles...", coder->id);
 	pthread_mutex_lock(&table->dongle_mutex);
-	while (!table->failed && table->dongles < 2)
+	while (!is_failed(table) && table->dongles < 2)
 		pthread_cond_wait(&table->condition->cond, &table->dongle_mutex);
 	pthread_mutex_unlock(&table->queue->mutex);
-	if (!table->failed)
+	if (!is_failed(table))
 	{
 		table->dongles -= 2;
 		pthread_mutex_unlock(&table->dongle_mutex);
@@ -47,11 +56,14 @@ static void	compile_state(t_coder *coder, t_table *table)
 		coder->deadline = coder->action_time + table->time_to_burnout;
 		add_log(table->logger, "Compiling...", coder->id);
 		delay(table->time_to_compile);
-		pthread_mutex_lock(&table->dongle_mutex);
-		table->dongles += 2;
-		broadcast(table->condition, NULL);
-		broadcast(table->scheduler_condition, &table->dongle_mutex);
+		if (is_failed(table))
+		{
+			pthread_mutex_unlock(&table->queue->mutex);
+			return ;
+		}
+		pthread_create(&coder->thread, NULL, delayed_dongle_release, table);
 	}
+	broadcast(table->scheduler_condition, NULL);
 }
 
 void	*c_life(void *thread_data)
@@ -66,15 +78,16 @@ void	*c_life(void *thread_data)
 	coder->action_time = current_time_ms();
 	coder->deadline = coder->action_time + table->time_to_burnout;
 	compiles_done = 0;
-	while (!table->failed)
+	while (!is_failed(table))
 	{
 		compile_state(coder, table);
-		if (++compiles_done == table->compiles_required || table->failed)
+		if (++compiles_done == table->compiles_required || is_failed(table))
 			break ;
 		simple_state(coder, table, "debugging");
 		simple_state(coder, table, "refactoring");
 	}
 	coder->finished = 1;
-	add_log(table->logger, "Finished coding!", coder->id);
+	if (!is_failed(table))
+		add_log(table->logger, "Finished coding!", coder->id);
 	return (NULL);
 }

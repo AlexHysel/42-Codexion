@@ -63,14 +63,13 @@ static void	*monitor(void *tbl)
 	coders = table->coders;
 	add_log(table->logger, "Monitoring...", -1);
 	i = 0;
-	while (!table->failed)
+	while (!is_failed(table))
 	{
 		if (!coders[i]->finished && coders[i]->deadline <= current_time_ms())
 		{
-			table->failed = 1;
 			add_log(table->logger, "!!! Coder has burned out !!!\n", -1);
-			broadcast(table->condition, NULL);
-			broadcast(table->scheduler_condition, NULL);
+			fail(table);
+			broadcast(table->condition, &table->dongle_mutex);
 		}
 		i = (i + 1) % table->number_of_coders;
 		delay(1);
@@ -100,10 +99,9 @@ void	run_codexion(t_table *table)
 	t_thread_data	*data;
 
 	i = -1;
-	while (++i < table->number_of_coders)
-		table->coders[i]->action_time = current_time_ms();
 	pthread_create(&s, NULL, scheduler, table);
 	pthread_create(&m, NULL, monitor, table);
+	delay(50);
 	i = -1;
 	while (++i < table->number_of_coders)
 	{
@@ -115,6 +113,7 @@ void	run_codexion(t_table *table)
 		}
 		data->id = i;
 		data->table = table;
+		table->coders[i]->action_time = current_time_ms();
 		pthread_create(&table->coders[i]->thread, NULL, c_life, data);
 	}
 	join_threads(table, m, s);

@@ -83,8 +83,6 @@ void	stop_logger(t_logger *logger)
 	t_logNode	*current;
 	t_logNode	*next;
 
-	printf("df\n");
-	fflush(stdout);
 	pthread_mutex_lock(&logger->mutex);
 	current = logger->log_list;
 	while (current)
