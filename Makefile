@@ -28,7 +28,7 @@ SRCS := main.c \
         $(addprefix $(INIT_DIR)/, $(INIT_SRCS)) \
         $(addprefix $(CODEXION_DIR)/, $(CODEXION_SRCS)) \
         $(addprefix $(MODELS_DIR)/, $(MODELS_SRCS)) \
-        $(addprefix $(UTILS_SRCS)/, $(UTILS_SRCS))
+        $(addprefix $(UTILS_DIR)/, $(UTILS_SRCS))
 
 OBJS := $(SRCS:.c=.o)
 

@@ -38,7 +38,7 @@ static void	simple_state(t_coder *coder, t_table *table, t_state state)
 		coder->deadline = coder->action_time + table->time_to_burnout;
 		if (state == DEBUGGING)
 		{
-			add_log(table->logger, "is_debugging", coder->id);
+			add_log(table->logger, "is debugging", coder->id);
 			delay(table->time_to_debug);
 		}
 		else if (state == REFACTORING)
