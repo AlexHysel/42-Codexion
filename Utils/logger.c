@@ -73,7 +73,6 @@ t_logger	*run_logger(void)
 			free(logger);
 			return (NULL);
 		}
-		add_log(logger, "Logger launched...", (t_byte)255);
 	}
 	return (logger);
 }

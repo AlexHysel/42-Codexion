@@ -12,56 +12,47 @@
 
 #include "../codexion.h"
 
-static void	simple_state(t_coder *coder, t_table *table, char *state)
+static void	simple_state(t_coder *coder, t_table *table, t_state state)
 {
 	if (!table->failed)
 	{
-		add_log(table->logger, state, coder->id);
 		coder->action_time = current_time_ms();
 		coder->deadline = coder->action_time + table->time_to_burnout;
-		if (state[0] == 'd')
+		if (state == DEBUGGING)
+		{
+			add_log(table->logger, "is_debugging", coder->id);
 			delay(table->time_to_debug);
-		else if (state[0] == 'r')
+		}
+		else if (state == REFACTORING)
+		{
+			add_log(table->logger, "is refactoring", coder->id);
 			delay(table->time_to_refactor);
+		}
 	}
 }
 
 static void	compile_state(t_coder *coder, t_table *table)
 {
 	pthread_mutex_lock(&table->queue->mutex);
-	if (is_failed(table))
-	{
-		pthread_mutex_unlock(&table->queue->mutex);
-		return ;
-	}
 	rq_add(table->queue, coder);
-	add_log(table->logger, "Request...", coder->id);
-	if (is_failed(table))
-	{
-		pthread_mutex_unlock(&table->queue->mutex);
-		return ;
-	}
 	broadcast(table->scheduler_condition, NULL);
 	wait(coder->condition, &table->queue->mutex, 0);
 	pthread_mutex_lock(&table->dongle_mutex);
 	while (!is_failed(table) && table->dongles < 2)
 		pthread_cond_wait(&table->condition->cond, &table->dongle_mutex);
 	pthread_mutex_unlock(&table->queue->mutex);
-	if (!is_failed(table))
+	if (is_failed(table))
+		pthread_mutex_unlock(&table->dongle_mutex);
+	else
 	{
 		table->dongles -= 2;
 		pthread_mutex_unlock(&table->dongle_mutex);
-		add_log(table->logger, "Dongles available.", coder->id);
 		coder->action_time = current_time_ms();
 		coder->deadline = coder->action_time + table->time_to_burnout;
-		add_log(table->logger, "Compiling...", coder->id);
+		add_log(table->logger, "is compiling", coder->id);
 		delay(table->time_to_compile);
-		if (is_failed(table))
-		{
-			pthread_mutex_unlock(&table->queue->mutex);
-			return ;
-		}
-		pthread_create(&coder->thread, NULL, delayed_dongle_release, table);
+		pthread_mutex_unlock(&table->queue->mutex);
+		pthread_create(&coder->delayed, NULL, delayed_dongle_release, table);
 	}
 	broadcast(table->scheduler_condition, NULL);
 }
@@ -83,11 +74,13 @@ void	*c_life(void *thread_data)
 		compile_state(coder, table);
 		if (++compiles_done == table->compiles_required || is_failed(table))
 			break ;
-		simple_state(coder, table, "debugging");
-		simple_state(coder, table, "refactoring");
+		simple_state(coder, table, DEBUGGING);
+		simple_state(coder, table, REFACTORING);
 	}
 	coder->finished = 1;
-	if (!is_failed(table))
-		add_log(table->logger, "Finished coding!", coder->id);
+	if (!coder->delayed)
+		pthread_join(coder->delayed, NULL);
+	pthread_cond_destroy(&coder->condition->cond);
+	add_log(table->logger, "Finished", coder->id);
 	return (NULL);
 }

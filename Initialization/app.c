@@ -44,6 +44,9 @@ static t_table	*create_table(char **args)
 		table->time_to_refactor = atoi(args[5]);
 		table->compiles_required = atoi(args[6]);
 		table->dongle_cooldown = atoi(args[7]);
+		pthread_mutex_init(&table->failed_mutex, NULL);
+		table->scheduler_finish = 0;
+		pthread_mutex_init(&table->scheduler_mutex, NULL);
 		if (!strcmp(args[8], EDF_STR))
 			table->scheduler = EDF;
 		else
@@ -56,6 +59,7 @@ static t_table	*create_table(char **args)
 	return (table);
 }
 
+/*
 static void	display_table(t_table *table)
 {
 	printf("Table created:\n");
@@ -68,7 +72,7 @@ static void	display_table(t_table *table)
 	printf("7. dongle_cooldown: %llu\n", table->dongle_cooldown);
 	printf("8. scheduler: %u\n\n", table->scheduler);
 }
-
+*/
 static t_coder	**create_coders(t_table *table)
 {
 	t_coder	**coders;
@@ -86,6 +90,7 @@ static t_coder	**create_coders(t_table *table)
 			coders[i]->deadline = -1;
 			coders[i]->thread = 0;
 			coders[i]->finished = 0;
+			coders[i]->delayed = 0;
 			condition_init(&coders[i]->condition);
 		}
 	}
@@ -102,7 +107,6 @@ t_table	*setup_codexion(char **args)
 		table = create_table(args);
 		if (!table)
 			return (NULL);
-		display_table(table);
 		table->coders = create_coders(table);
 		if (!table->coders)
 		{

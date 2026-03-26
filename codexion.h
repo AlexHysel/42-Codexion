@@ -43,6 +43,12 @@ typedef unsigned long long	t_msec;
 typedef pthread_mutex_t		t_mutex;
 typedef unsigned char		t_byte;
 
+typedef enum e_state
+{
+	DEBUGGING,
+	REFACTORING
+}	t_state;
+
 typedef enum e_scheduler
 {
 	EDF,
@@ -59,6 +65,7 @@ typedef struct s_coder
 {
 	t_uint		id;
 	pthread_t	thread;
+	pthread_t	delayed;
 	t_msec		action_time;
 	t_msec		deadline;
 	t_condition	*condition;
@@ -113,6 +120,8 @@ typedef struct s_table
 	t_condition		*condition;
 	t_condition		*scheduler_condition;
 	t_uint			dongles;
+	t_byte			scheduler_finish;
+	t_mutex			scheduler_mutex;
 	t_byte			failed;
 	t_mutex			failed_mutex;
 	t_logger		*logger;
@@ -132,6 +141,7 @@ t_table		*setup_codexion(char **args);
 // ===== Codexion =====
 void		run_codexion(t_table *table);
 void		*scheduler(void *data);
+void		finish_sceduler(t_table *table);
 void		free_table(t_table *table);
 
 // ===== Models =====
