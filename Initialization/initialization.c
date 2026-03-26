@@ -114,7 +114,7 @@ t_table	*setup_codexion(char **args)
 		if (table)
 		{
 			table->coders = create_coders(table);
-			if (!table->coders)
+			if (!table->coders || !table->scheduler || !table->scheduler->queue)
 				cleanup(table);
 		}
 	}
