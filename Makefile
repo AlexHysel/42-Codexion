@@ -10,30 +10,42 @@
 #                                                                              #
 # **************************************************************************** #
 
-NAME = codexion
-CC = cc
-FLAGS = -Wall -Wextra -Werror -pthread
-INIT_DIR := Initialization
-CODEXION_DIR := Codexion
-MODELS_DIR := Models
-UTILS_DIR := Utils
+NAME        := codexion
+CC          := cc
+FLAGS       := -Wall -Wextra -Werror -pthread
 
-INIT_SRCS := initialization.c validation.c cleanup.c
+INIT_DIR      := Initialization
+CODEXION_DIR  := Codexion
+MODELS_DIR    := Models
+UTILS_DIR     := Utils
+
+INIT_SRCS     := initialization.c validation.c cleanup.c
 CODEXION_SRCS := codexion.c scheduler.c
-MODELS_SRCS := coder.c queue.c
-UTILS_SRCS := utils.c logger.c pthread.c
+MODELS_SRCS   := coder.c queue.c
+UTILS_SRCS    := utils.c logger.c pthread.c
 
-INIT_FILES := $(addprefix $(INIT_DIR)/,$(INIT_SRCS))
-CODEXION_FILES := $(addprefix $(CODEXION_DIR)/,$(CODEXION_SRCS))
-MODELS_FILES := $(addprefix $(MODELS_DIR)/,$(MODELS_SRCS))
-UTILS_FILES := $(addprefix $(UTILS_DIR)/,$(UTILS_SRCS))
+SRCS := main.c \
+        $(addprefix $(INIT_DIR)/, $(INIT_SRCS)) \
+        $(addprefix $(CODEXION_DIR)/, $(CODEXION_SRCS)) \
+        $(addprefix $(MODELS_DIR)/, $(MODELS_SRCS)) \
+        $(addprefix $(UTILS_SRCS)/, $(UTILS_SRCS))
+
+OBJS := $(SRCS:.c=.o)
 
 all: $(NAME)
 
-$(NAME): main.c $(CODEXION_FILES) $(INIT_FILES) $(MODELS_FILES) $(UTILS_FILES)
-	$(CC) $(FLAGS) main.c $(CODEXION_FILES) $(INIT_FILES) $(MODELS_FILES) $(UTILS_FILES) -o $(NAME)
+$(NAME): $(OBJS)
+	$(CC) $(FLAGS) $(OBJS) -o $(NAME)
+
+%.o: %.c
+	$(CC) $(FLAGS) -c $< -o $@
 
 clean:
+	rm -f $(OBJS)
+
+fclean: clean
 	rm -f $(NAME)
 
-.PHONY: all clean
+re: fclean all
+
+.PHONY: all clean fclean re
