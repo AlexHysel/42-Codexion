@@ -45,7 +45,7 @@ int	main(int argc, char **args)
 		write(2, "Error\n", 6);
 		write(2, "Usage: ./codexion number_of_coders time_to_burnout ", 51);
 		write(2, "time_to_compile time_to_debug time_to_refactor ", 47);
-		write(2, "num_compiles_required [dongle_cooldown] [scheduler]\n", 52);
+		write(2, "num_compiles_required dongle_cooldown scheduler\n", 52);
 		return (1);
 	}
 	else if (validate_args(args))
