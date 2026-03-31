@@ -64,6 +64,7 @@ static void	compile_state(t_coder *coder, t_table *table)
 		table->dongles -= 2;
 		pthread_mutex_unlock(&table->dongle_mutex);
 		update_time(coder, table->time_to_burnout);
+		add_log(table->logger, "has taken a dongle", coder->id);
 		add_log(table->logger, "is compiling", coder->id);
 		delay(table->time_to_compile);
 		delay(table->dongle_cooldown);
