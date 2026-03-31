@@ -108,7 +108,7 @@ void	add_log(t_logger *logger, char *msg, t_byte id)
 	log_data = malloc(sizeof(t_logNode));
 	if (!log_data)
 		return ;
-	log_data->id = id;
+	log_data->id = id + 1;
 	log_data->msg = msg;
 	log_data->time = current_time_ms() - logger->start_time;
 	log_data->next = NULL;

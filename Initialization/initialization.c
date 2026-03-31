@@ -55,8 +55,6 @@ static t_table	*create_table(char **args)
 		parse_args(table, args);
 		table->failed = 0;
 		table->dongles = table->number_of_coders;
-		if (table->number_of_coders == 1)
-			table->dongles = 2;
 		pthread_mutex_init(&table->failed_mutex, NULL);
 		pthread_mutex_init(&table->dongle_mutex, NULL);
 		condition_init(&table->condition);
@@ -96,7 +94,6 @@ static t_coder	**create_coders(t_table *table)
 			coders[i]->deadline = -1;
 			coders[i]->thread = 0;
 			coders[i]->finished = 0;
-			coders[i]->delayed = 0;
 			pthread_mutex_init(&coders[i]->deadline_mutex, NULL);
 			condition_init(&coders[i]->condition);
 		}

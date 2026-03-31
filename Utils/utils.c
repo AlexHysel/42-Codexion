@@ -42,15 +42,3 @@ void	fail(t_table *table)
 	table->failed = 1;
 	pthread_mutex_unlock(&table->failed_mutex);
 }
-
-void	*delayed_dongle_release(void *data)
-{
-	t_table	*table;
-
-	table = (t_table *)data;
-	delay(table->dongle_cooldown);
-	pthread_mutex_lock(&table->dongle_mutex);
-	table->dongles += 2;
-	broadcast(table->condition, &table->dongle_mutex);
-	return (NULL);
-}

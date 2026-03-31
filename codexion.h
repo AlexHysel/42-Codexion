@@ -65,7 +65,6 @@ typedef struct s_coder
 {
 	t_uint		id;
 	pthread_t	thread;
-	pthread_t	delayed;
 	t_msec		action_time;
 	t_msec		deadline;
 	t_mutex		deadline_mutex;
@@ -163,7 +162,6 @@ t_msec		current_time_ms(void);
 void		delay(t_msec milliseconds);
 void		fail(t_table *table);
 t_byte		is_failed(t_table *table);
-void		*delayed_dongle_release(void *data);
 
 void		wait(t_condition *cond, t_mutex *mutex, t_byte lock);
 void		broadcast(t_condition *condition, t_mutex *mutex);
