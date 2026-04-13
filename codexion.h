@@ -20,14 +20,16 @@
 
 #define EDF_STR "edf"
 #define FIFO_STR "fifo"
+#define SUCCESS 0
+#define FAILURE 1
 
 /*
 ⢸⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⡷⠀⠀
 ⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⠀
 ⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇ Are ya winning son?
 ⢸⠀⠀⠀⠀⠀⠖⠒⠒⠒⢤⠀⠀⠀⡇
-⢸⠀⠀⣀⢤⣼⣀⡠⠤⠤⠼⠤⡄⠀⡇⠀
-⢸⠀⠀⠑⡤⠤⡒⠒⠒⡊⠙⡏⠀⢀⡇⠀
+⢸⠀⠀⣀⢤⣼⣀⡠⠤⠤⠼⠤⡄⠀⡇⠀No, im redoing the project for the... 6th time?
+⢸⠀⠀⠑⡤⠤⡒⠒⠒⡊⠙⡏⠀⢀⡇⠀Some day i will learn how to pay more attention to the subject.
 ⢸⠀⠀⠀⠇⠀⣀⣀⣀⣀⢀⠧⠟⠁⡇
 ⢸⠀⠀⠀⠸⣀⠀⠀⠈⢉⠟⠓⠀⠀⡇
 ⢸⠀⠀⠀⠀⠈⢱⡖⠋⠁⠀⠀⠀⠀⡇
@@ -43,12 +45,6 @@ typedef unsigned long long	t_msec;
 typedef pthread_mutex_t		t_mutex;
 typedef unsigned char		t_byte;
 
-typedef enum e_state
-{
-	DEBUGGING,
-	REFACTORING
-}	t_state;
-
 typedef enum e_scheduler
 {
 	EDF,
@@ -61,15 +57,39 @@ typedef struct s_condition
 	t_byte			flag;
 }	t_condition;
 
+typedef struct s_queue_node
+{
+	t_byte				id;
+	t_msec				request_time;
+	t_msec				deadline;
+	struct s_queue_node	*next;
+}	t_requestQueueNode;
+
+typedef struct s_queue
+{
+	t_mutex				mutex;
+	t_requestQueueNode	*head;
+}	t_requestQueue;
+
+typedef struct s_dongle
+{
+	t_msec			cooldown_end;
+	t_byte			is_taken;
+	t_mutex			mutex;
+	t_requestQueue	*queue;
+	t_condition		*cond;
+}	t_dongle;
+
 typedef struct s_coder
 {
 	t_uint		id;
 	pthread_t	thread;
-	t_msec		action_time;
+	t_msec		last_compile;
 	t_msec		deadline;
-	t_mutex		deadline_mutex;
-	t_condition	*condition;
+	t_mutex		mutex;
 	t_byte		finished;
+	t_dongle	*right_dongle;
+	t_dongle	*left_dongle;
 }	t_coder;
 
 typedef struct s_logNode
@@ -90,29 +110,6 @@ typedef struct s_logger
 	pthread_t	thread;
 }	t_logger;
 
-typedef struct s_queue_node
-{
-	t_byte				id;
-	t_msec				request_time;
-	t_msec				deadline;
-	struct s_queue_node	*next;
-}	t_requestQueueNode;
-
-typedef struct s_queue
-{
-	t_mutex				mutex;
-	t_requestQueueNode	*head;
-}	t_requestQueue;
-
-typedef struct s_scheduler
-{
-	t_mutex			mutex;
-	t_byte			finished;
-	t_condition		*condition;
-	t_schedulerType	type;
-	t_requestQueue	*queue;
-}	t_scheduler;
-
 typedef struct s_table
 {
 	t_uint			number_of_coders;
@@ -122,13 +119,11 @@ typedef struct s_table
 	t_msec			time_to_refactor;
 	t_uint			compiles_required;
 	t_msec			dongle_cooldown;
-	t_scheduler		*scheduler;
+	t_schedulerType	type;
 
 	t_condition		*condition;
-	t_uint			dongles;
-	t_mutex			dongle_mutex;
 	t_byte			failed;
-	t_mutex			failed_mutex;
+	t_mutex			mutex;
 	t_logger		*logger;
 	t_coder			**coders;
 }	t_table;
@@ -136,7 +131,7 @@ typedef struct s_table
 typedef struct s_thread_data
 {
 	t_table	*table;
-	t_byte	id;
+	t_coder	*coder;
 }	t_thread_data;
 
 // ===== Initialization =====
@@ -145,13 +140,20 @@ t_table		*setup_codexion(char **args);
 
 // ===== Codexion =====
 void		run_codexion(t_table *table);
-void		*scheduler(void *data);
-void		finish_scheduler(t_scheduler *scheduler);
 void		cleanup(t_table *table);
 
 // ===== Models =====
 void		*c_life(void *thread_data);
-t_msec		get_deadline(t_coder *coder);
+t_byte		is_dead(t_coder *coder);
+
+void		wait(t_condition *cond, t_mutex *mutex, t_byte lock);
+void		broadcast(t_condition *condition, t_mutex *mutex);
+void		condition_init(t_condition **condition);
+void		condition_destroy(t_condition *condition);
+
+void		dongle_init(t_dongle **dongle);
+void		dongle_destroy(t_dongle *dongle);
+void		take_dongles(t_coder *coder, t_table *table);
 
 void		rq_add(t_requestQueue *queue, t_coder *coder);
 void		rq_pop(t_requestQueue *queue);
@@ -162,11 +164,6 @@ t_msec		current_time_ms(void);
 void		delay(t_msec milliseconds);
 void		fail(t_table *table);
 t_byte		is_failed(t_table *table);
-
-void		wait(t_condition *cond, t_mutex *mutex, t_byte lock);
-void		broadcast(t_condition *condition, t_mutex *mutex);
-void		condition_init(t_condition **condition);
-void		condition_destroy(t_condition *condition);
 
 void		add_log(t_logger *logger, char *msg, t_byte id);
 t_logger	*run_logger(void);

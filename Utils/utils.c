@@ -30,15 +30,15 @@ t_byte	is_failed(t_table *table)
 {
 	t_byte	failed;
 
-	pthread_mutex_lock(&table->failed_mutex);
+	pthread_mutex_lock(&table->mutex);
 	failed = table->failed;
-	pthread_mutex_unlock(&table->failed_mutex);
+	pthread_mutex_unlock(&table->mutex);
 	return (failed);
 }
 
 void	fail(t_table *table)
 {
-	pthread_mutex_lock(&table->failed_mutex);
+	pthread_mutex_lock(&table->mutex);
 	table->failed = 1;
-	pthread_mutex_unlock(&table->failed_mutex);
+	pthread_mutex_unlock(&table->mutex);
 }

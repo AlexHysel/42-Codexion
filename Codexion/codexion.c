@@ -23,13 +23,10 @@ static void	*monitor(void *tbl)
 	i = 0;
 	while (!is_failed(table))
 	{
-		if (!coders[i]->finished
-			&& get_deadline(coders[i]) <= current_time_ms())
+		if (is_dead(coders[i]))
 		{
-			add_log(table->logger, "burned out", i);
 			fail(table);
-			broadcast(table->scheduler->condition, NULL);
-			broadcast(table->condition, &table->dongle_mutex);
+			add_log(table->logger, "burned out", i);
 		}
 		i = (i + 1) % table->number_of_coders;
 		delay(1);
@@ -37,7 +34,7 @@ static void	*monitor(void *tbl)
 	return (NULL);
 }
 
-static void	join_threads(t_table *table, pthread_t m, pthread_t s)
+static void	join_threads(t_table *table, pthread_t m)
 {
 	t_byte	i;
 
@@ -46,32 +43,26 @@ static void	join_threads(t_table *table, pthread_t m, pthread_t s)
 		if (table->coders[i]->thread)
 			pthread_join(table->coders[i]->thread, NULL);
 	fail(table);
-	finish_scheduler(table->scheduler);
 	pthread_join(m, NULL);
-	pthread_join(s, NULL);
 }
 
 void	run_codexion(t_table *table)
 {
 	t_byte			i;
 	pthread_t		m;
-	pthread_t		s;
 	t_thread_data	*data;
 
-	pthread_create(&s, NULL, scheduler, table);
 	pthread_create(&m, NULL, monitor, table);
-	delay(50);
 	i = -1;
-	table->logger->start_time = current_time_ms();
 	while (++i < table->number_of_coders)
 	{
 		data = malloc(sizeof(t_thread_data));
 		if (!data)
 			break ;
-		data->id = i;
+		data->coder = table->coders[i];
 		data->table = table;
-		table->coders[i]->action_time = current_time_ms();
+		table->coders[i]->last_compile = current_time_ms();
 		pthread_create(&table->coders[i]->thread, NULL, c_life, data);
 	}
-	join_threads(table, m, s);
+	join_threads(table, m);
 }

@@ -12,27 +12,6 @@
 
 #include "../codexion.h"
 
-static void	create_scheduler(t_table *table, char *type)
-{
-	table->scheduler = malloc(sizeof(t_scheduler));
-	if (table->scheduler)
-	{
-		table->scheduler->queue = malloc(sizeof(t_requestQueue));
-		if (table->scheduler->queue)
-		{
-			table->scheduler->finished = 0;
-			if (!strcmp(type, EDF_STR))
-				table->scheduler->type = EDF;
-			else
-				table->scheduler->type = FIFO;
-			table->scheduler->queue->head = NULL;
-			pthread_mutex_init(&table->scheduler->mutex, NULL);
-			pthread_mutex_init(&table->scheduler->queue->mutex, NULL);
-			condition_init(&table->scheduler->condition);
-		}
-	}
-}
-
 static void	parse_args(t_table *table, char **args)
 {
 	table->number_of_coders = atoi(args[1]);
@@ -42,7 +21,10 @@ static void	parse_args(t_table *table, char **args)
 	table->time_to_refactor = atoi(args[5]);
 	table->compiles_required = atoi(args[6]);
 	table->dongle_cooldown = atoi(args[7]);
-	create_scheduler(table, args[8]);
+	if (!strcmp(args[8], EDF_STR))
+		table->type = EDF;
+	if (!strcmp(args[8], FIFO_STR))
+		table->type = FIFO;
 }
 
 static t_table	*create_table(char **args)
@@ -54,9 +36,7 @@ static t_table	*create_table(char **args)
 	{
 		parse_args(table, args);
 		table->failed = 0;
-		table->dongles = table->number_of_coders;
-		pthread_mutex_init(&table->failed_mutex, NULL);
-		pthread_mutex_init(&table->dongle_mutex, NULL);
+		pthread_mutex_init(&table->mutex, NULL);
 		condition_init(&table->condition);
 	}
 	return (table);
@@ -79,8 +59,8 @@ static void	display_table(t_table *table)
 
 static t_coder	**create_coders(t_table *table)
 {
-	t_coder	**coders;
-	t_byte	i;
+	t_coder		**coders;
+	t_byte		i;
 
 	coders = malloc(sizeof(t_coder *) * table->number_of_coders);
 	if (coders)
@@ -90,13 +70,16 @@ static t_coder	**create_coders(t_table *table)
 		{
 			coders[i] = malloc(sizeof(t_coder));
 			coders[i]->id = i;
-			coders[i]->action_time = 0;
+			coders[i]->last_compile = 0;
 			coders[i]->deadline = -1;
 			coders[i]->thread = 0;
 			coders[i]->finished = 0;
-			pthread_mutex_init(&coders[i]->deadline_mutex, NULL);
-			condition_init(&coders[i]->condition);
+			dongle_init(&coders[i]->left_dongle);
+			if (i)
+				coders[i - 1]->right_dongle = coders[i]->left_dongle;
+			pthread_mutex_init(&coders[i]->mutex, NULL);
 		}
+		coders[i - 1]->right_dongle = coders[0]->left_dongle;
 	}
 	return (coders);
 }
@@ -112,7 +95,7 @@ t_table	*setup_codexion(char **args)
 		if (table)
 		{
 			table->coders = create_coders(table);
-			if (!table->coders || !table->scheduler || !table->scheduler->queue)
+			if (!table->coders)
 				cleanup(table);
 		}
 	}

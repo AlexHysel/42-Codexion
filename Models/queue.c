@@ -24,7 +24,7 @@ void	rq_add(t_requestQueue *queue, t_coder *coder)
 		{
 			new_node->id = coder->id;
 			new_node->request_time = current_time_ms();
-			new_node->deadline = coder->action_time + 0ULL;
+			new_node->deadline = coder->last_compile;
 			new_node->next = NULL;
 			curr = queue->head;
 			if (curr)

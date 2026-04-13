@@ -21,8 +21,10 @@ static void	free_coders(t_table *table)
 		i = -1;
 		while (++i < table->number_of_coders)
 		{
-			condition_destroy(table->coders[i]->condition);
-			pthread_mutex_destroy(&table->coders[i]->deadline_mutex);
+			pthread_mutex_destroy(&table->coders[i]->mutex);
+			dongle_destroy(table->coders[i]->right_dongle);
+			table->coders[i]->right_dongle = NULL;
+			table->coders[i]->left_dongle = NULL;
 			free(table->coders[i]);
 		}
 		free(table->coders);
@@ -34,16 +36,8 @@ void	cleanup(t_table *table)
 {
 	if (table)
 	{
-		pthread_mutex_destroy(&table->dongle_mutex);
-		pthread_mutex_destroy(&table->failed_mutex);
+		pthread_mutex_destroy(&table->mutex);
 		condition_destroy(table->condition);
-		if (table->scheduler)
-		{
-			condition_destroy(table->scheduler->condition);
-			pthread_mutex_destroy(&table->scheduler->mutex);
-			free(table->scheduler->queue);
-			free(table->scheduler);
-		}
 		if (table->coders)
 			free_coders(table);
 		free(table);

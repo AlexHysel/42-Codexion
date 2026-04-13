@@ -20,22 +20,16 @@ static int	python_sucks(char **args)
 
 	status = 0;
 	logger = run_logger();
-	if (logger)
-	{
-		table = setup_codexion(args);
-		if (table && table->scheduler && table->scheduler->queue)
-		{
-			table->logger = logger;
-			run_codexion(table);
-			cleanup(table);
-		}
-		else
-			status = 1;
-		stop_logger(logger);
-	}
-	else
-		status = 1;
-	return (status);
+	if (!logger)
+		return (FAILURE);
+	table = setup_codexion(args);
+	if (!table)
+		return (FAILURE);
+	table->logger = logger;
+	run_codexion(table);
+	cleanup(table);
+	stop_logger(logger);
+	return (SUCCESS);
 }
 
 int	main(int argc, char **args)
@@ -46,9 +40,9 @@ int	main(int argc, char **args)
 		write(2, "Usage: ./codexion number_of_coders time_to_burnout ", 51);
 		write(2, "time_to_compile time_to_debug time_to_refactor ", 47);
 		write(2, "num_compiles_required dongle_cooldown scheduler\n", 52);
-		return (1);
+		return (FAILURE);
 	}
 	else if (validate_args(args))
 		return (python_sucks(args));
-	return (1);
+	return (FAILURE);
 }

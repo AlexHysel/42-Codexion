@@ -20,9 +20,9 @@ MODELS_DIR    := Models
 UTILS_DIR     := Utils
 
 INIT_SRCS     := initialization.c validation.c cleanup.c
-CODEXION_SRCS := codexion.c scheduler.c
-MODELS_SRCS   := coder.c queue.c
-UTILS_SRCS    := utils.c logger.c pthread.c
+CODEXION_SRCS := codexion.c
+MODELS_SRCS   := coder.c queue.c condition.c dongle.c
+UTILS_SRCS    := utils.c logger.c
 
 SRCS := main.c \
         $(addprefix $(INIT_DIR)/, $(INIT_SRCS)) \
